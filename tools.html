@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Update | Haza</title>
+    <style>
+        /* --- General Styles --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #050505;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- Background Stars (Same as Chat) --- */
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0));
+            background-repeat: repeat;
+            background-size: 200px 200px;
+            animation: twinkle 4s infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes twinkle {
+            0% { transform: translateY(0); opacity: 0.3; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-20px); opacity: 0.3; }
+        }
+
+        /* --- Update Card Container --- */
+        .update-container {
+            z-index: 1;
+            text-align: center;
+            background: rgba(20, 20, 20, 0.8);
+            padding: 50px;
+            border-radius: 20px;
+            border: 1px solid #333;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 0 50px rgba(0, 255, 136, 0.1);
+            max-width: 500px;
+            width: 90%;
+            animation: popup 0.8s ease-out;
+        }
+
+        @keyframes popup {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* --- Icon Animation --- */
+        .icon-box {
+            font-size: 60px;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #fff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            color: #aaa;
+            font-size: 16px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        /* --- Progress Bar --- */
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background-color: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 50%;
+            background-color: #00ff88;
+            border-radius: 10px;
+            position: absolute;
+            animation: load 2s infinite ease-in-out;
+            box-shadow: 0 0 10px #00ff88;
+        }
+
+        @keyframes load {
+            0% { left: -50%; width: 30%; }
+            50% { left: 20%; width: 60%; }
+            100% { left: 100%; width: 30%; }
+        }
+
+        .status-text {
+            font-size: 13px;
+            color: #00ff88;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* --- Footer --- */
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #555;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Stars Background -->
+    <div class="stars"></div>
+
+    <div class="update-container">
+        <div class="icon-box">🚀</div>
+        
+        <h1>System Update</h1>
+        
+        <p>
+            We are currently upgrading <b>HAZA Tools</b> to serve you better. 
+            We will be back online shortly with new AI features.
+        </p>
+
+        <!-- Loading Animation -->
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+        </div>
+
+        <div class="status-text">Upgrading Server...</div>
+
+        <div class="footer">
+            &copy; 2026 HAZA (Janma Hasarel). All Rights Reserved.
+        </div>
+    </div>
+
+</body>
+</html>

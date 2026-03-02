@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en" style="scroll-behavior: smooth;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tools | HAZA</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&family=Outfit:wght@300;500;800&family=Space+Grotesk:wght@300;700&display=swap" rel="stylesheet">
+
+    <!-- Three.js & GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        html, body { overflow-x: hidden; width: 100%; }
+        body { font-family: 'Outfit', sans-serif; background-color: #050505; color: white; margin: 0; }
+        h1, h2, .brand-font { font-family: 'Space Grotesk', sans-serif; }
+
+        /* 3D Background */
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%); }
+        #bg-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px); }
+
+        /* --- NEW Liquid Glass Aesthetic --- */
+        .glass-panel {
+            /* No border. Using gradients to define shape */
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.08), rgba(255,255,255,0.01));
+            backdrop-filter: blur(20px); /* Increased blur for "Liquid" feel */
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); /* Soft deep shadow */
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Smooth bouncy transition */
+        }
+
+        .glass-panel:hover {
+            /* Increased shine on hover */
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.12), rgba(255,255,255,0.02));
+            box-shadow: 0 12px 40px 0 rgba(34, 211, 238, 0.15); /* Cyan glow on hover */
+            transform: translateY(-5px);
+        }
+
+        /* Modal Specifics (Needs to be slightly more opaque) */
+        .modal-content {
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.1), rgba(20, 20, 20, 0.9));
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(12px); z-index: 100; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.4s ease; }
+        .modal-content { width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; border-radius: 1.5rem; position: relative; transform: scale(0.95); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+        /* Tool Inputs */
+        .tool-input { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); color: white; padding: 0.75rem 1rem; border-radius: 0.75rem; width: 100%; outline: none; transition: all 0.3s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .tool-input:focus { border-color: rgba(34, 211, 238, 0.3); box-shadow: 0 0 15px rgba(34, 211, 238, 0.1); background: rgba(0,0,0,0.5); }
+        
+        /* Buttons */
+        .tool-btn { background: rgba(34, 211, 238, 0.1); color: #22d3ee; padding: 0.5rem 1.25rem; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s; font-weight: 500; border: 1px solid rgba(34, 211, 238, 0.1); }
+        .tool-btn:hover { background: rgba(34, 211, 238, 0.2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34, 211, 238, 0.2); }
+        .tool-btn-danger { background: rgba(239, 68, 68, 0.1); color: #f87171; border-color: rgba(239, 68, 68, 0.1); }
+        .tool-btn-danger:hover { background: rgba(239, 68, 68, 0.2); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
+
+        /* Range Slider Styling */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #22d3ee; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(34, 211, 238, 0.5); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+        /* Tabs */
+        .tab-btn { padding: 0.5rem 1rem; border-bottom: 2px solid transparent; color: gray; cursor: pointer; transition: 0.3s; }
+        .tab-btn.active { border-color: #22d3ee; color: white; background: rgba(255,255,255,0.05); }
+
+        /* Print Styles */
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 100%; color: black; background: white; padding: 20px; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-cyan-500 selection:text-black">
+
+    <!-- 3D Background -->
+    <div id="canvas-container"></div>
+    <div id="bg-overlay"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 px-4 md:px-6 py-4 md:py-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center glass-panel rounded-full px-6 md:px-8 py-3 md:py-4 fade-in">
+            <a href="#" class="text-xl md:text-2xl font-bold tracking-widest text-white hover:text-cyan-400 transition-colors duration-300">HAZA<span class="text-cyan-400">.</span></a>
+            <div class="hidden md:flex space-x-8 text-sm font-light tracking-wide">
+                <a href="#" class="nav-link hover:text-cyan-400 transition-colors duration-300">HOME</a>
+                <a href="#" class="nav-link hover:text-cyan-400 transition-colors duration-300">BUILD</a>
+                <a href="#" class="nav-link hover:text-cyan-400 transition-colors duration-300">ABOUT</a>
+                <a href="#" class="nav-link text-cyan-400 font-bold transition-colors duration-300">TOOLS</a>
+                <a href="#" class="nav-link hover:text-cyan-400 transition-colors duration-300">CONTACT</a>
+            </div>
+            <a href="#" class="nav-link hidden md:block px-6 py-2 bg-white text-black font-bold rounded-full hover:bg-cyan-400 hover:scale-105 transition-all duration-300 shadow-lg shadow-cyan-500/20">Back to Home</a>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <section class="relative pt-32 pb-12 md:pt-48 md:pb-20 px-4 flex flex-col items-center justify-center text-center z-10">
+        <h1 class="text-5xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-purple-500 mb-6 scroll-reveal-up drop-shadow-2xl">My Toolkit</h1>
+        <p class="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-4 scroll-reveal-up font-light">The software and technologies I use to bring ideas to life.</p>
+        <div class="w-24 h-1 bg-cyan-500/60 rounded-full scroll-reveal-up shadow-[0_0_15px_rgba(34,211,238,0.5)]"></div>
+    </section>
+
+    <!-- Tools Grid -->
+    <main class="pb-20 px-4 relative z-10">
+        <div class="max-w-6xl mx-auto">
+            <!-- Default Tools -->
+            <h3 class="text-2xl font-bold mb-8 text-white/90 tracking-wide flex items-center gap-3 scroll-reveal-up">
+                <span class="w-2 h-8 bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(34,211,238,0.8)]"></span> 
+                Primary AI Tools
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-20">
+                <!-- Tool 1 -->
+                <a href="https://hazasite.github.io/ai/aiimage.html" target="_blank" class="glass-panel p-8 rounded-3xl group cursor-pointer scroll-reveal-up relative overflow-hidden">
+                    <div class="absolute -right-10 -top-10 w-40 h-40 bg-pink-500/20 rounded-full blur-[60px] group-hover:bg-pink-500/40 transition-all duration-500"></div>
+                    <div class="relative z-10">
+                        <div class="w-14 h-14 bg-gradient-to-br from-pink-500/20 to-pink-600/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 backdrop-blur-sm">
+                            <svg class="w-7 h-7 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">Generate AI Images</h3>
+                        <p class="text-gray-400 text-sm mb-4 leading-relaxed">Create stunning visuals from text descriptions using advanced AI models.</p>
+                        <span class="text-pink-400 font-bold text-sm flex items-center group-hover:translate-x-2 transition-transform duration-300">Launch Tool &rarr;</span>
+                    </div>
+                </a>
+                <!-- Tool 2 -->
+                <a href="https://hazasite.github.io/ai/aichat.html" target="_blank" class="glass-panel p-8 rounded-3xl group cursor-pointer scroll-reveal-up relative overflow-hidden" style="transition-delay: 100ms;">
+                    <div class="absolute -right-10 -top-10 w-40 h-40 bg-cyan-500/20 rounded-full blur-[60px] group-hover:bg-cyan-500/40 transition-all duration-500"></div>
+                    <div class="relative z-10">
+                        <div class="w-14 h-14 bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 backdrop-blur-sm">
+                            <svg class="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">AI Chat Bot</h3>
+                        <p class="text-gray-400 text-sm mb-4 leading-relaxed">Experience conversational AI assistance for queries and creative tasks.</p>
+                        <span class="text-cyan-400 font-bold text-sm flex items-center group-hover:translate-x-2 transition-transform duration-300">Launch Tool &rarr;</span>
+                    </div>
+                </a>
+                <!-- Tool 3 -->
+                <a href="https://hazasite.github.io/aitools/" target="_blank" class="glass-panel p-8 rounded-3xl group cursor-pointer scroll-reveal-up relative overflow-hidden" style="transition-delay: 200ms;">
+                    <div class="absolute -right-10 -top-10 w-40 h-40 bg-purple-500/20 rounded-full blur-[60px] group-hover:bg-purple-500/40 transition-all duration-500"></div>
+                    <div class="relative z-10">
+                        <div class="w-14 h-14 bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 backdrop-blur-sm">
+                            <svg class="w-7 h-7 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">AI Library</h3>
+                        <p class="text-gray-400 text-sm mb-4 leading-relaxed">A curated collection of AI tools, models, and resources for developers.</p>
+                        <span class="text-purple-400 font-bold text-sm flex items-center group-hover:translate-x-2 transition-transform duration-300">Explore Library &rarr;</span>
+                    </div>
+                </a>
+                <!-- Tool 4 -->
+                <a href="https://hazasite.github.io/blogs/" target="_blank" class="glass-panel p-8 rounded-3xl group cursor-pointer scroll-reveal-up relative overflow-hidden" style="transition-delay: 300ms;">
+                    <div class="absolute -right-10 -top-10 w-40 h-40 bg-yellow-500/20 rounded-full blur-[60px] group-hover:bg-yellow-500/40 transition-all duration-500"></div>
+                    <div class="relative z-10">
+                        <div class="w-14 h-14 bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 backdrop-blur-sm">
+                            <svg class="w-7 h-7 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">Share Your Knowledge</h3>
+                        <p class="text-gray-400 text-sm mb-4 leading-relaxed">Read my latest articles, tutorials, and tech insights on the blog.</p>
+                        <span class="text-yellow-400 font-bold text-sm flex items-center group-hover:translate-x-2 transition-transform duration-300">Read Blog &rarr;</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- New Tools -->
+            <h3 class="text-2xl font-bold mb-8 text-white/90 tracking-wide flex items-center gap-3 scroll-reveal-up">
+                <span class="w-2 h-8 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,211,238,0.8)]"></span> 
+                Simple Utility Tools
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Tool 1 -->
+                <div onclick="openModal('pdf')" class="glass-panel p-6 rounded-2xl group cursor-pointer scroll-reveal-up hover:bg-gradient-to-br hover:from-red-500/10 hover:to-transparent">
+                    <div class="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 backdrop-blur-md">
+                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-100">PDF Creator</h4><p class="text-xs text-gray-400 mt-1">Rich Text & Sinhala</p>
+                </div>
+                <!-- Tool 2 -->
+                <div onclick="openModal('qr')" class="glass-panel p-6 rounded-2xl group cursor-pointer scroll-reveal-up hover:bg-gradient-to-br hover:from-gray-500/10 hover:to-transparent">
+                    <div class="w-10 h-10 bg-gray-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 backdrop-blur-md">
+                        <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-100">QR Generator</h4><p class="text-xs text-gray-400 mt-1">Custom Colors</p>
+                </div>
+                <!-- Tool 3 -->
+                <div onclick="openModal('password')" class="glass-panel p-6 rounded-2xl group cursor-pointer scroll-reveal-up hover:bg-gradient-to-br hover:from-blue-500/10 hover:to-transparent">
+                    <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 backdrop-blur-md">
+                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-100">Password Gen</h4><p class="text-xs text-gray-400 mt-1">Strength Meter</p>
+                </div>
+                <!-- Tool 4 -->
+                <div onclick="openModal('wordcount')" class="glass-panel p-6 rounded-2xl group cursor-pointer scroll-reveal-up hover:bg-gradient-to-br hover:from-orange-500/10 hover:to-transparent">
+                    <div class="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 backdrop-blur-md">
+                        <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-100">Word Counter</h4><p class="text-xs text-gray-400 mt-1">Reading Time</p>
+                </div>
+                <!-- Tool 5 -->
+                <div onclick="openModal('converter')" class="glass-panel p-6 rounded-2xl group cursor-pointer scroll-reveal-up hover:bg-gradient-to-br hover:from-teal-500/10 hover:to-transparent">
+                    <div class="w-10 h-10 bg-teal-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 backdrop-blur-md">
+                        <svg class="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-100">Unit Converter</h4><p class="text-xs text-gray-400 mt-1">Multiple Tabs</p>
+                </div>
+                <!-- Tool 6 -->
+                <div onclick="openModal('bmi')" class="glass-panel p-6 rounded-2xl group cursor-pointer scroll-reveal-up hover:bg-gradient-to-br hover:from-rose-500/10 hover:to-transparent">
+                    <div class="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 backdrop-blur-md">
+                        <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-100">BMI Calculator</h4><p class="text-xs text-gray-400 mt-1">Visual Gauge</p>
+                </div>
+                <!-- Tool 7 -->
+                <div onclick="openModal('age')" class="glass-panel p-6 rounded-2xl group cursor-pointer scroll-reveal-up hover:bg-gradient-to-br hover:from-indigo-500/10 hover:to-transparent">
+                    <div class="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 backdrop-blur-md">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-100">Age Calculator</h4><p class="text-xs text-gray-400 mt-1">Detailed Breakdown</p>
+                </div>
+                <!-- Tool 8 -->
+                <div onclick="openModal('color')" class="glass-panel p-6 rounded-2xl group cursor-pointer scroll-reveal-up hover:bg-gradient-to-br hover:from-yellow-500/10 hover:to-transparent">
+                    <div class="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 backdrop-blur-md">
+                        <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-100">Color Picker</h4><p class="text-xs text-gray-400 mt-1">History & HSL</p>
+                </div>
+                <!-- Tool 9 -->
+                <div onclick="openModal('case')" class="glass-panel p-6 rounded-2xl group cursor-pointer scroll-reveal-up hover:bg-gradient-to-br hover:from-lime-500/10 hover:to-transparent">
+                    <div class="w-10 h-10 bg-lime-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 backdrop-blur-md">
+                        <svg class="w-5 h-5 text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-100">Case Converter</h4><p class="text-xs text-gray-400 mt-1">Save to .txt</p>
+                </div>
+                <!-- Tool 10 -->
+                <div onclick="openModal('tts')" class="glass-panel p-6 rounded-2xl group cursor-pointer scroll-reveal-up hover:bg-gradient-to-br hover:from-fuchsia-500/10 hover:to-transparent">
+                    <div class="w-10 h-10 bg-fuchsia-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 backdrop-blur-md">
+                        <svg class="w-5 h-5 text-fuchsia-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-100">Text to Speech</h4><p class="text-xs text-gray-400 mt-1">Voice & Pitch</p>
+                </div>
+                <!-- Tool 11 -->
+                <div onclick="openModal('stopwatch')" class="glass-panel p-6 rounded-2xl group cursor-pointer scroll-reveal-up hover:bg-gradient-to-br hover:from-sky-500/10 hover:to-transparent">
+                    <div class="w-10 h-10 bg-sky-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 backdrop-blur-md">
+                        <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-100">Stopwatch</h4><p class="text-xs text-gray-400 mt-1">Lap Timer</p>
+                </div>
+                <!-- Tool 12 -->
+                <div onclick="openModal('base64')" class="glass-panel p-6 rounded-2xl group cursor-pointer scroll-reveal-up hover:bg-gradient-to-br hover:from-slate-500/10 hover:to-transparent">
+                    <div class="w-10 h-10 bg-slate-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 backdrop-blur-md">
+                        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                    </div>
+                    <h4 class="font-bold text-lg text-gray-100">Base64 Tool</h4><p class="text-xs text-gray-400 mt-1">Image to Base64</p>
+                </div>
+            </div>
+            <div class="text-center mt-12 scroll-reveal-up"><p class="text-gray-500 italic text-sm md:text-base tracking-wide animate-pulse">"More tools are being developed..."</p></div>
+        </div>
+    </main>
+
+    <footer class="text-center py-6 md:py-8 text-gray-600 text-xs md:text-sm relative z-10 glass-panel border-t border-t-white/5 border-b-0 border-x-0 mt-10"><p>&copy; 2023 HAZA (Janma Hasarel). Tools Created with <span class="text-red-500">♥</span>.</p></footer>
+
+    <!-- Modal -->
+    <div id="modal-overlay" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content p-6 md:p-8 glass-panel" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+                <h2 id="modal-title" class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Tool Name</h2>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div id="modal-body" class="text-gray-300"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- Three.js Setup (Preserved) ---
+        const scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x000000, 0.002);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight); renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        const particlesGeometry = new THREE.BufferGeometry(); const particlesCount = 2000; const posArray = new Float32Array(particlesCount * 3);
+        for(let i = 0; i < particlesCount * 3; i++) posArray[i] = (Math.random() - 0.5) * 20;
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMaterial = new THREE.PointsMaterial({ size: 0.005, color: 0x00ffff, transparent: true, opacity: 0.8 });
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial); scene.add(particlesMesh);
+        const geometry = new THREE.TorusKnotGeometry(1.2, 0.4, 150, 20);
+        const material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.15 });
+        const torusKnot = new THREE.Mesh(geometry, material); scene.add(torusKnot);
+        const sphereGeo = new THREE.SphereGeometry(0.8, 32, 32);
+        const sphereMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.1 });
+        const sphere = new THREE.Mesh(sphereGeo, sphereMat); scene.add(sphere);
+        camera.position.z = 4;
+        let mouseX = 0, mouseY = 0, targetX = 0, targetY = 0;
+        const windowHalfX = window.innerWidth / 2; const windowHalfY = window.innerHeight / 2;
+        document.addEventListener('mousemove', (event) => { mouseX = (event.clientX - windowHalfX); mouseY = (event.clientY - windowHalfY); });
+        const clock = new THREE.Clock();
+        const animate = () => {
+            targetX = mouseX * 0.001; targetY = mouseY * 0.001; const elapsedTime = clock.getElapsedTime();
+            torusKnot.rotation.y += 0.005; torusKnot.rotation.x += 0.002;
+            torusKnot.rotation.y += 0.05 * (targetX - torusKnot.rotation.y); torusKnot.rotation.x += 0.05 * (targetY - torusKnot.rotation.x);
+            particlesMesh.rotation.y = elapsedTime * 0.05; particlesMesh.rotation.x = mouseY * 0.0001;
+            renderer.render(scene, camera); window.requestAnimationFrame(animate);
+        };
+        animate();
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.from(".fade-in", { y: -50, opacity: 0, duration: 1, ease: "power3.out" });
+        gsap.utils.toArray('.scroll-reveal-up').forEach(elem => { gsap.from(elem, { scrollTrigger: { trigger: elem, start: "top 90%" }, y: 50, opacity: 0, duration: 1, ease: "power3.out" }); });
+
+        // --- Global State & Modal ---
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+
+        function openModal(toolName) {
+            modalOverlay.classList.add('active');
+            modalBody.innerHTML = '';
+            
+            switch(toolName) {
+                case 'pdf':
+                    modalTitle.innerText = "PDF Creator (Rich Text)";
+                    modalBody.innerHTML = `
+                        <div class="flex flex-wrap gap-2 mb-3 no-print">
+                            <button onclick="document.execCommand('bold')" class="tool-btn">Bold</button>
+                            <button onclick="document.execCommand('italic')" class="tool-btn">Italic</button>
+                            <button onclick="document.execCommand('justifyLeft')" class="tool-btn">Left</button>
+                            <button onclick="document.execCommand('justifyCenter')" class="tool-btn">Center</button>
+                            <button onclick="document.execCommand('justifyRight')" class="tool-btn">Right</button>
+                            <input type="color" onchange="document.execCommand('foreColor', false, this.value)" class="w-8 h-8 rounded cursor-pointer bg-transparent">
+                        </div>
+                        <div id="print-area" class="bg-white text-black p-6 rounded-2xl min-h-[400px] font-serif" contenteditable="true" style="font-family: 'Noto Sans Sinhala', sans-serif; outline: none; line-height: 1.6;" spellcheck="false">
+                            <h1 class="text-3xl font-bold mb-4">Title Here</h1>
+                            <p>Start typing in <b>English</b> or <b>සිංහල</b>. Use the toolbar above to format text.</p>
+                        </div>
+                        <div class="mt-4 flex gap-4 no-print">
+                            <button onclick="window.print()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-3 rounded-xl font-bold transition shadow-lg shadow-cyan-500/30">Save as PDF</button>
+                        </div>
+                    `;
+                    break;
+                case 'qr':
+                    modalTitle.innerText = "Advanced QR Generator";
+                    modalBody.innerHTML = `
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="text-sm text-gray-400">Content</label>
+                                <input type="text" id="qr-text" placeholder="URL or Text" class="tool-input mb-4">
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="text-sm text-gray-400">FG Color</label>
+                                        <input type="color" id="qr-fg" value="#000000" class="w-full h-10 rounded bg-transparent">
+                                    </div>
+                                    <div>
+                                        <label class="text-sm text-gray-400">BG Color</label>
+                                        <input type="color" id="qr-bg" value="#ffffff" class="w-full h-10 rounded bg-transparent">
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="text-sm text-gray-400">Size: <span id="qr-size-val">128</span>px</label>
+                                    <input type="range" id="qr-size" min="64" max="512" step="32" value="128" class="w-full" oninput="document.getElementById('qr-size-val').innerText=this.value">
+                                </div>
+                                <button onclick="generateQR()" class="w-full bg-cyan-600 hover:bg-cyan-500 py-2 rounded-xl font-bold transition shadow-lg shadow-cyan-500/30">Generate</button>
+                            </div>
+                            <div class="flex flex-col items-center justify-center bg-white/5 p-4 rounded-2xl">
+                                <div id="qrcode" class="bg-white p-4 rounded-xl mb-4 shadow-xl"></div>
+                                <button onclick="downloadQR()" class="tool-btn w-full">Download PNG</button>
+                            </div>
+                        </div>
+                    `;
+                    setTimeout(() => { document.getElementById('qr-text').value = "https://hazasite.github.io"; generateQR(); }, 100);
+                    break;
+                case 'password':
+                    modalTitle.innerText = "Secure Password Generator";
+                    modalBody.innerHTML = `
+                        <div class="bg-black/20 p-4 rounded-xl mb-4 flex justify-between items-center backdrop-blur-sm">
+                            <span id="pass-display" class="font-mono text-xl break-all">Generate...</span>
+                            <button onclick="navigator.clipboard.writeText(document.getElementById('pass-display').innerText)" class="text-cyan-400 hover:text-white ml-2 transition-colors">Copy</button>
+                        </div>
+                        <div class="h-2 w-full bg-gray-700 rounded-full mb-4 overflow-hidden">
+                            <div id="pass-strength-bar" class="h-full w-0 transition-all duration-300 bg-red-500"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <label class="flex items-center space-x-2 bg-white/5 p-2 rounded-lg cursor-pointer"><input type="checkbox" id="pass-upper" checked class="accent-cyan-400"> <span>Uppercase</span></label>
+                            <label class="flex items-center space-x-2 bg-white/5 p-2 rounded-lg cursor-pointer"><input type="checkbox" id="pass-lower" checked class="accent-cyan-400"> <span>Lowercase</span></label>
+                            <label class="flex items-center space-x-2 bg-white/5 p-2 rounded-lg cursor-pointer"><input type="checkbox" id="pass-num" checked class="accent-cyan-400"> <span>Numbers</span></label>
+                            <label class="flex items-center space-x-2 bg-white/5 p-2 rounded-lg cursor-pointer"><input type="checkbox" id="pass-sym" class="accent-cyan-400"> <span>Symbols</span></label>
+                        </div>
+                        <div class="mb-4">
+                            <label>Length: <span id="pass-len-val">12</span></label>
+                            <input type="range" id="pass-len" min="6" max="64" value="12" class="w-full" oninput="document.getElementById('pass-len-val').innerText = this.value">
+                        </div>
+                        <button onclick="generatePass()" class="w-full bg-cyan-600 hover:bg-cyan-500 py-3 rounded-xl font-bold transition shadow-lg shadow-cyan-500/30">Generate Password</button>
+                    `;
+                    break;
+                case 'wordcount':
+                    modalTitle.innerText = "Advanced Word Counter";
+                    modalBody.innerHTML = `
+                        <textarea id="wc-input" class="w-full h-48 tool-input mb-4 resize-none" placeholder="Paste text here..."></textarea>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                            <div class="bg-white/5 p-3 rounded-xl text-center backdrop-blur-sm">
+                                <div class="text-2xl font-bold text-cyan-400" id="wc-words">0</div>
+                                <div class="text-xs text-gray-400">Words</div>
+                            </div>
+                            <div class="bg-white/5 p-3 rounded-xl text-center backdrop-blur-sm">
+                                <div class="text-2xl font-bold text-cyan-400" id="wc-chars">0</div>
+                                <div class="text-xs text-gray-400">Chars</div>
+                            </div>
+                            <div class="bg-white/5 p-3 rounded-xl text-center backdrop-blur-sm">
+                                <div class="text-2xl font-bold text-cyan-400" id="wc-sentences">0</div>
+                                <div class="text-xs text-gray-400">Sentences</div>
+                            </div>
+                            <div class="bg-white/5 p-3 rounded-xl text-center backdrop-blur-sm">
+                                <div class="text-2xl font-bold text-cyan-400" id="wc-paragraphs">0</div>
+                                <div class="text-xs text-gray-400">Paragraphs</div>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-400 mb-4 flex justify-between px-2">
+                            <span>Reading Time: <span id="wc-read" class="text-white">0s</span></span>
+                            <span>Speaking Time: <span id="wc-speak" class="text-white">0s</span></span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="document.getElementById('wc-input').value=''; updateWC();" class="tool-btn-danger w-1/2">Clear</button>
+                            <button onclick="navigator.clipboard.writeText(document.getElementById('wc-input').value)" class="tool-btn w-1/2">Copy Text</button>
+                        </div>
+                    `;
+                    setTimeout(() => {
+                        const el = document.getElementById('wc-input');
+                        el.addEventListener('input', updateWC);
+                    }, 100);
+                    break;
+                case 'converter':
+                    modalTitle.innerText = "Universal Unit Converter";
+                    modalBody.innerHTML = `
+                        <div class="flex border-b border-white/10 mb-4">
+                            <button class="tab-btn active" onclick="switchConv('length')">Length</button>
+                            <button class="tab-btn" onclick="switchConv('weight')">Weight</button>
+                            <button class="tab-btn" onclick="switchConv('temp')">Temp</button>
+                        </div>
+                        <div id="conv-container" class="space-y-4"></div>
+                    `;
+                    switchConv('length');
+                    break;
+                case 'bmi':
+                    modalTitle.innerText = "BMI Calculator";
+                    modalBody.innerHTML = `
+                        <div class="space-y-6">
+                            <div>
+                                <label class="flex justify-between mb-2"><span>Height (cm)</span> <span id="bmi-h-disp" class="text-cyan-400">170</span></label>
+                                <input type="range" id="bmi-h" min="100" max="250" value="170" class="w-full" oninput="updateBMI()">
+                            </div>
+                            <div>
+                                <label class="flex justify-between mb-2"><span>Weight (kg)</span> <span id="bmi-w-disp" class="text-cyan-400">70</span></label>
+                                <input type="range" id="bmi-w" min="30" max="200" value="70" class="w-full" oninput="updateBMI()">
+                            </div>
+                            <div class="bg-white/5 p-4 rounded-xl backdrop-blur-sm">
+                                <div class="flex justify-between items-end mb-2">
+                                    <span class="text-sm text-gray-400">BMI</span>
+                                    <span id="bmi-val" class="text-3xl font-bold">24.2</span>
+                                </div>
+                                <div class="h-4 w-full rounded-full flex overflow-hidden text-[10px] font-bold leading-none">
+                                    <div class="w-[18%] bg-blue-500 border-r border-black/20">Under</div>
+                                    <div class="w-[6%] bg-green-500 border-r border-black/20">Norm</div>
+                                    <div class="w-[5%] bg-orange-500 border-r border-black/20">Over</div>
+                                    <div class="flex-1 bg-red-500">Obese</div>
+                                </div>
+                                <div id="bmi-status" class="text-center mt-2 text-green-400">Normal Weight</div>
+                            </div>
+                        </div>
+                    `;
+                    setTimeout(updateBMI, 50);
+                    break;
+                case 'age':
+                    modalTitle.innerText = "Detailed Age Calculator";
+                    modalBody.innerHTML = `
+                        <div class="space-y-4">
+                            <label class="text-gray-400">Date of Birth</label>
+                            <input type="date" id="age-d" class="tool-input mb-4" onchange="calcAge()">
+                            <div class="grid grid-cols-3 gap-4 text-center">
+                                <div class="bg-white/5 p-4 rounded-xl backdrop-blur-sm">
+                                    <div id="age-y" class="text-2xl font-bold">0</div>
+                                    <div class="text-xs text-gray-400">Years</div>
+                                </div>
+                                <div class="bg-white/5 p-4 rounded-xl backdrop-blur-sm">
+                                    <div id="age-m" class="text-2xl font-bold">0</div>
+                                    <div class="text-xs text-gray-400">Months</div>
+                                </div>
+                                <div class="bg-white/5 p-4 rounded-xl backdrop-blur-sm">
+                                    <div id="age-d" class="text-2xl font-bold">0</div>
+                                    <div class="text-xs text-gray-400">Days</div>
+                                </div>
+                            </div>
+                            <div class="text-center text-sm text-gray-400 mt-4">
+                                Next Birthday: <span id="age-next" class="text-cyan-400"></span><br>
+                                Born on: <span id="age-day" class="text-white"></span>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('age-d').valueAsDate = new Date();
+                    calcAge();
+                    break;
+                case 'color':
+                    modalTitle.innerText = "Advanced Color Picker";
+                    modalBody.innerHTML = `
+                        <div class="flex gap-6 items-start">
+                            <div class="flex-1">
+                                <input type="color" id="cp-pick" class="w-full h-32 rounded-2xl cursor-pointer bg-transparent mb-4" oninput="updateColor()">
+                                <div class="grid grid-cols-2 gap-2 mb-4">
+                                    <div><label class="text-xs">HEX</label><input type="text" id="cp-hex" class="tool-input font-mono text-sm" oninput="colorFromHex()"></div>
+                                    <div><label class="text-xs">RGB</label><input type="text" id="cp-rgb" class="tool-input font-mono text-sm" readonly></div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 mb-4">
+                                    <div><label class="text-xs">H</label><input type="number" id="cp-h" class="tool-input text-sm" oninput="colorFromHSL()"></div>
+                                    <div><label class="text-xs">S</label><input type="number" id="cp-s" class="tool-input text-sm" oninput="colorFromHSL()"></div>
+                                    <div><label class="text-xs">L</label><input type="number" id="cp-l" class="tool-input text-sm" oninput="colorFromHSL()"></div>
+                                </div>
+                                <button onclick="navigator.clipboard.writeText('color: ' + document.getElementById('cp-hex').value)" class="tool-btn w-full">Copy CSS</button>
+                            </div>
+                            <div class="w-24">
+                                <label class="text-xs block mb-2">History</label>
+                                <div id="cp-hist" class="grid grid-cols-2 gap-1"></div>
+                            </div>
+                        </div>
+                    `;
+                    window.colorHistory = [];
+                    updateColor();
+                    break;
+                case 'case':
+                    modalTitle.innerText = "Case Converter";
+                    modalBody.innerHTML = `
+                        <textarea id="case-input" class="w-full h-32 tool-input mb-4 resize-none" placeholder="Type here..."></textarea>
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            <button onclick="caseConv('upper')" class="tool-btn">UPPERCASE</button>
+                            <button onclick="caseConv('lower')" class="tool-btn">lowercase</button>
+                            <button onclick="caseConv('title')" class="tool-btn">Title Case</button>
+                            <button onclick="caseConv('sentence')" class="tool-btn">Sentence case</button>
+                            <button onclick="caseConv('inverse')" class="tool-btn">iNVERSE cASE</button>
+                            <button onclick="caseConv('alternating')" class="tool-btn">AlTeRnAtInG</button>
+                        </div>
+                        <button onclick="downloadTxt()" class="tool-btn w-full">Save as .txt</button>
+                    `;
+                    break;
+                case 'tts':
+                    modalTitle.innerText = "Text to Speech Engine";
+                    modalBody.innerHTML = `
+                        <textarea id="tts-input" class="w-full h-32 tool-input mb-4 resize-none" placeholder="Enter text to speak..."></textarea>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="text-xs text-gray-400">Voice</label>
+                                <select id="tts-voice" class="tool-input"></select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400">Rate</label>
+                                <input type="range" id="tts-rate" min="0.5" max="2" value="1" step="0.1" class="w-full mt-2">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400">Pitch</label>
+                                <input type="range" id="tts-pitch" min="0" max="2" value="1" step="0.1" class="w-full mt-2">
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="speakText()" class="tool-btn flex-1">Speak</button>
+                            <button onclick="window.speechSynthesis.cancel()" class="tool-btn-danger flex-1">Stop</button>
+                        </div>
+                    `;
+                    setTimeout(populateVoices, 100);
+                    break;
+                case 'stopwatch':
+                    modalTitle.innerText = "Precision Stopwatch";
+                    modalBody.innerHTML = `
+                        <div class="text-5xl font-mono text-center mb-6 tracking-wider" id="sw-display">00:00:00<span class="text-2xl text-gray-400">.00</span></div>
+                        <div class="flex justify-center gap-4 mb-6">
+                            <button onclick="toggleStopwatch()" id="sw-btn" class="bg-green-600 hover:bg-green-500 px-8 py-3 rounded-xl font-bold text-lg shadow-lg shadow-green-500/30">Start</button>
+                            <button onclick="resetStopwatch()" class="bg-gray-600 hover:bg-gray-500 px-8 py-3 rounded-xl font-bold text-lg">Reset</button>
+                            <button onclick="lapStopwatch()" class="bg-cyan-600 hover:bg-cyan-500 px-8 py-3 rounded-xl font-bold text-lg shadow-lg shadow-cyan-500/30">Lap</button>
+                        </div>
+                        <div class="max-h-48 overflow-y-auto" id="sw-laps"></div>
+                    `;
+                    break;
+                case 'base64':
+                    modalTitle.innerText = "Base64 Encoder / Decoder";
+                    modalBody.innerHTML = `
+                        <div class="mb-4">
+                            <label class="text-sm text-gray-400">Input Text</label>
+                            <textarea id="b64-in" class="w-full h-24 tool-input resize-none" placeholder="Text..."></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            <button onclick="doB64('encode')" class="tool-btn">Encode to Base64</button>
+                            <button onclick="doB64('decode')" class="tool-btn">Decode from Base64</button>
+                        </div>
+                        <div class="border-t border-white/10 pt-4">
+                            <label class="text-sm text-gray-400">Or Convert Image</label>
+                            <input type="file" id="b64-file" accept="image/*" class="tool-input mt-2" onchange="imgToB64(this)">
+                        </div>
+                        <div class="mt-4">
+                            <label class="text-sm text-gray-400">Output</label>
+                            <textarea id="b64-out" readonly class="w-full h-24 bg-black/30 text-gray-400 text-xs font-mono p-2 rounded-lg border border-white/5 resize-none"></textarea>
+                            <button onclick="navigator.clipboard.writeText(document.getElementById('b64-out').value)" class="text-xs text-cyan-400 mt-1">Copy Output</button>
+                        </div>
+                    `;
+                    break;
+            }
+        }
+
+        function closeModal() { modalOverlay.classList.remove('active'); }
+
+        // --- Tool Logic ---
+        function generateQR() {
+            const text = document.getElementById('qr-text').value; const fg = document.getElementById('qr-fg').value; const bg = document.getElementById('qr-bg').value; const size = parseInt(document.getElementById('qr-size').value); const container = document.getElementById('qrcode'); container.innerHTML = ""; new QRCode(container, { text: text, width: size, height: size, colorDark : fg, colorLight : bg });
+        }
+        function downloadQR() {
+            const img = document.querySelector('#qrcode img');
+            if(img) { const link = document.createElement('a'); link.download = 'qrcode.png'; link.href = img.src; link.click(); }
+        }
+        function generatePass() {
+            const len = document.getElementById('pass-len').value; const u = document.getElementById('pass-upper').checked; const l = document.getElementById('pass-lower').checked; const n = document.getElementById('pass-num').checked; const s = document.getElementById('pass-sym').checked;
+            let charset = ""; if(u) charset += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; if(l) charset += "abcdefghijklmnopqrstuvwxyz"; if(n) charset += "0123456789"; if(s) charset += "!@#$%^&*()_+";
+            if(charset === "") { document.getElementById('pass-display').innerText = "Select options"; return; }
+            let ret = ""; for (let i = 0, n = charset.length; i < len; ++i) ret += charset.charAt(Math.floor(Math.random() * n));
+            document.getElementById('pass-display').innerText = ret;
+            let strength = 0; if(len > 8) strength++; if(len > 12) strength++; if(u) strength++; if(n) strength++; if(s) strength++;
+            const bar = document.getElementById('pass-strength-bar');
+            bar.className = `h-full transition-all duration-300 ${strength < 2 ? 'bg-red-500 w-1/4' : strength < 4 ? 'bg-yellow-500 w-2/4' : 'bg-green-500 w-full'}`;
+        }
+        function updateWC() {
+            const val = document.getElementById('wc-input').value; document.getElementById('wc-chars').innerText = val.length; document.getElementById('wc-words').innerText = val.trim() === '' ? 0 : val.trim().split(/\s+/).length; document.getElementById('wc-paragraphs').innerText = val.split(/\n\s*\n/).filter(Boolean).length; document.getElementById('wc-sentences').innerText = val.split(/[.!?]+/).filter(Boolean).length;
+            const wpm = 225; spm = 180; const words = val.trim() === '' ? 0 : val.trim().split(/\s+/).length;
+            document.getElementById('wc-read').innerText = Math.ceil(words/wpm) + "m"; document.getElementById('wc-speak').innerText = Math.ceil(words/spm) + "m";
+        }
+        function switchConv(type) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); const container = document.getElementById('conv-container');
+            if(type === 'length') container.innerHTML = `<input type="number" id="cv-m" class="tool-input" placeholder="Meters" oninput="convertVal(this.value, 'm', 'f', 3.28084)"><input type="number" id="cv-f" class="tool-input" placeholder="Feet" oninput="convertVal(this.value, 'f', 'm', 0.3048)">`;
+            else if(type === 'weight') container.innerHTML = `<input type="number" id="cv-kg" class="tool-input" placeholder="Kilograms" oninput="convertVal(this.value, 'kg', 'lb', 2.20462)"><input type="number" id="cv-lb" class="tool-input" placeholder="Pounds" oninput="convertVal(this.value, 'lb', 'kg', 0.453592)">`;
+            else if(type === 'temp') container.innerHTML = `<input type="number" id="cv-c" class="tool-input" placeholder="Celsius" oninput="convertTemp(this.value, 'c')"><input type="number" id="cv-f" class="tool-input" placeholder="Fahrenheit" oninput="convertTemp(this.value, 'f')">`;
+        }
+        function convertVal(val, from, to, rate) { const other = (val * rate).toFixed(2); if(to === 'f' || to === 'lb') document.getElementById('cv-'+to).value = other; else document.getElementById('cv-'+to).value = other; }
+        function convertTemp(val, type) { if(type === 'c') document.getElementById('cv-f').value = ((val * 9/5) + 32).toFixed(1); else document.getElementById('cv-c').value = ((val - 32) * 5/9).toFixed(1); }
+        function updateBMI() {
+            const h = document.getElementById('bmi-h').value; const w = document.getElementById('bmi-w').value; document.getElementById('bmi-h-disp').innerText = h; document.getElementById('bmi-w-disp').innerText = w; const bmi = (w / ((h/100)**2)).toFixed(1); document.getElementById('bmi-val').innerText = bmi;
+            let status = ""; let color = "";
+            if(bmi < 18.5) { status = "Underweight"; color = "text-blue-400"; } else if(bmi < 25) { status = "Normal Weight"; color = "text-green-400"; } else if(bmi < 30) { status = "Overweight"; color = "text-orange-400"; } else { status = "Obese"; color = "text-red-400"; }
+            const sEl = document.getElementById('bmi-status'); sEl.innerText = status; sEl.className = `text-center mt-2 ${color}`;
+        }
+        function calcAge() {
+            const dob = new Date(document.getElementById('age-d').value); const now = new Date(); let years = now.getFullYear() - dob.getFullYear(); let months = now.getMonth() - dob.getMonth(); let days = now.getDate() - dob.getDate();
+            if (days < 0) { months--; days += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); } if (months < 0) { years--; months += 12; }
+            document.getElementById('age-y').innerText = years; document.getElementById('age-m').innerText = months; document.getElementById('age-d').innerText = days;
+            const nextBday = new Date(now.getFullYear(), dob.getMonth(), dob.getDate()); if(now > nextBday) nextBday.setFullYear(now.getFullYear() + 1); const diff = nextBday - now; const daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24)); document.getElementById('age-next').innerText = `${daysLeft} days`; document.getElementById('age-day').innerText = dob.toLocaleDateString('en-US', { weekday: 'long' });
+        }
+        function updateColor() {
+            const hex = document.getElementById('cp-pick').value; document.getElementById('cp-hex').value = hex; const r = parseInt(hex.substr(1,2), 16); const g = parseInt(hex.substr(3,2), 16); const b = parseInt(hex.substr(5,2), 16); document.getElementById('cp-rgb').value = `${r}, ${g}, ${b}`;
+            r /= 255, g /= 255, b /= 255; const max = Math.max(r, g, b), min = Math.min(r, g, b); let h, s, l = (max + min) / 2; if (max == min) { h = s = 0; } else { const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min); switch (max) { case r: h = (g - b) / d + (g < b ? 6 : 0); break; case g: h = (b - r) / d + 2; break; case b: h = (r - g) / d + 4; break; } h /= 6; }
+            document.getElementById('cp-h').value = Math.round(h * 360); document.getElementById('cp-s').value = Math.round(s * 100); document.getElementById('cp-l').value = Math.round(l * 100);
+            if(!window.colorHistory.includes(hex)) { window.colorHistory.unshift(hex); if(window.colorHistory.length > 5) window.colorHistory.pop(); const histEl = document.getElementById('cp-hist'); histEl.innerHTML = window.colorHistory.map(c => `<div class="w-10 h-10 rounded-lg cursor-pointer" style="background:${c}" onclick="document.getElementById('cp-pick').value='${c}';updateColor()"></div>`).join(''); }
+        }
+        function colorFromHex() { document.getElementById('cp-pick').value = document.getElementById('cp-hex').value; updateColor(); }
+        function colorFromHSL() { const h = document.getElementById('cp-h').value; const s = document.getElementById('cp-s').value; const l = document.getElementById('cp-l').value; document.getElementById('cp-pick').value = hslToHex(h, s, l); updateColor(); }
+        function hslToHex(h, s, l) { l /= 100; const a = s * Math.min(l, 1 - l) / 100; const f = n => { const k = (n + h / 30) % 12; const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1); return Math.round(255 * color).toString(16).padStart(2, '0'); }; return `#${f(0)}${f(8)}${f(4)}`; }
+        function caseConv(type) {
+            const el = document.getElementById('case-input'); const val = el.value;
+            if(type === 'upper') el.value = val.toUpperCase(); if(type === 'lower') el.value = val.toLowerCase(); if(type === 'title') el.value = val.toLowerCase().replace(/\b\w/g, s => s.toUpperCase()); if(type === 'sentence') el.value = val.toLowerCase().replace(/(^\s*\w|[\.\!\?]\s*\w)/g, c => c.toUpperCase()); if(type === 'inverse') el.value = val.split('').map(c => c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase()).join(''); if(type === 'alternating') el.value = val.split('').map((c, i) => i % 2 ? c.toUpperCase() : c.toLowerCase()).join('');
+        }
+        function downloadTxt() { const text = document.getElementById('case-input').value; const blob = new Blob([text], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'converted-text.txt'; a.click(); }
+        function populateVoices() { const voices = window.speechSynthesis.getVoices(); const select = document.getElementById('tts-voice'); select.innerHTML = voices.map(v => `<option value="${v.name}">${v.name} (${v.lang})</option>`).join(''); }
+        function speakText() { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(document.getElementById('tts-input').value); const voices = window.speechSynthesis.getVoices(); u.voice = voices.find(v => v.name === document.getElementById('tts-voice').value); u.rate = document.getElementById('tts-rate').value; u.pitch = document.getElementById('tts-pitch').value; window.speechSynthesis.speak(u); }
+        let swInterval, swTime = 0, swRunning = false;
+        function toggleStopwatch() {
+            if(swRunning) { clearInterval(swInterval); swRunning = false; document.getElementById('sw-btn').innerText = "Start"; document.getElementById('sw-btn').className = "bg-green-600 hover:bg-green-500 px-8 py-3 rounded-xl font-bold text-lg shadow-lg shadow-green-500/30"; } else { swRunning = true; document.getElementById('sw-btn').innerText = "Stop"; document.getElementById('sw-btn').className = "bg-red-600 hover:bg-red-500 px-8 py-3 rounded-xl font-bold text-lg shadow-lg shadow-red-500/30"; swInterval = setInterval(() => { swTime += 10; updateSWDisplay(); }, 10); }
+        }
+        function updateSWDisplay() { const date = new Date(swTime); const m = date.getUTCMinutes().toString().padStart(2,'0'); const s = date.getUTCSeconds().toString().padStart(2,'0'); const ms = date.getUTCMilliseconds().toString().padStart(3,'0').slice(0,2); document.getElementById('sw-display').innerHTML = `${m}:${s}<span class="text-2xl text-gray-400">.${ms}</span>`; }
+        function resetStopwatch() { clearInterval(swInterval); swRunning = false; swTime = 0; updateSWDisplay(); document.getElementById('sw-laps').innerHTML = ""; document.getElementById('sw-btn').innerText = "Start"; document.getElementById('sw-btn').className = "bg-green-600 hover:bg-green-500 px-8 py-3 rounded-xl font-bold text-lg shadow-lg shadow-green-500/30"; }
+        function lapStopwatch() { if(!swRunning) return; const div = document.createElement('div'); div.className = "text-sm font-mono border-b border-white/5 py-2 flex justify-between px-2"; div.innerHTML = `<span>Lap ${document.getElementById('sw-laps').children.length + 1}</span><span>${document.getElementById('sw-display').innerText.replace(/<[^>]*>?/gm, '')}</span>`; document.getElementById('sw-laps').prepend(div); }
+        function doB64(type) { const val = document.getElementById('b64-in').value; if(type === 'encode') document.getElementById('b64-out').value = btoa(val); else document.getElementById('b64-out').value = atob(val); }
+        function imgToB64(input) { if (input.files && input.files[0]) { const reader = new FileReader(); reader.onload = function (e) { document.getElementById('b64-out').value = e.target.result; }; reader.readAsDataURL(input.files[0]); } }
+    </script>
+</body>
+</html>
