@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAZA | Janma Hasarel</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;800&family=Space+Grotesk:wght@300;700&display=swap" rel="stylesheet">
+
+    <!-- Three.js & GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
+    
+    <!-- Lenis (Smooth Scroll) -->
+    <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.29/bundled/lenis.min.js"></script>
+
+    <style>
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #050505;
+            color: white;
+            margin: 0;
+        }
+
+        h1, h2, .brand-font {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        /* The 3D Canvas Background */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2; 
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+        }
+
+        /* Background Overlay */
+        #bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px); 
+        }
+
+        /* Glassmorphism Utility */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+
+        .text-glow {
+            text-shadow: 0 0 30px rgba(255,255,255,0.2);
+        }
+
+        /* Pre-hide scroll-reveal elements so they don't flash before GSAP animates them */
+        .scroll-reveal-up,
+        .scroll-reveal-left,
+        .scroll-reveal-right {
+            opacity: 0;
+        }
+
+        /* Copy Notification */
+        #copy-notification {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        #copy-notification.show {
+            opacity: 1;
+        }
+
+        /* Collaborators Section */
+        .collab-orb {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 18px;
+            border: 2px solid rgba(255,255,255,0.15);
+            flex-shrink: 0;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .collab-orb:hover {
+            transform: scale(1.15) translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+        .collab-orb-more {
+            background: rgba(255,255,255,0.08);
+            border: 2px dashed rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.5);
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .collab-btn-primary {
+            background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+            color: white;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            padding: 14px 32px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 30px rgba(6,182,212,0.3);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .collab-btn-primary:hover {
+            transform: translateY(-3px) scale(1.04);
+            box-shadow: 0 0 50px rgba(6,182,212,0.5);
+        }
+        .collab-btn-secondary {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            padding: 14px 32px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .collab-btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(139,92,246,0.6);
+            color: #c4b5fd;
+            transform: translateY(-3px);
+        }
+        .role-tag {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .collab-glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+        }
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(3deg); }
+        }
+        @keyframes float-slow-2 {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(-2deg); }
+        }
+        .float-anim { animation: float-slow 6s ease-in-out infinite; }
+        .float-anim-2 { animation: float-slow-2 8s ease-in-out infinite; }
+        .collab-stat-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 18px 24px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .collab-stat-card:hover {
+            background: rgba(255,255,255,0.07);
+            border-color: rgba(6,182,212,0.3);
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-cyan-500 selection:text-black">
+
+    <!-- 3D Background -->
+    <div id="canvas-container"></div>
+    <div id="bg-overlay"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 px-4 md:px-6 py-4 md:py-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center glass-panel rounded-full px-6 md:px-8 py-3 md:py-4 fade-in">
+            <!-- Logo links to Home -->
+            <a href="#home" class="text-xl md:text-2xl font-bold tracking-widest text-white hover:text-cyan-400 transition-colors">HAZA<span class="text-cyan-400">.</span></a>
+            
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex space-x-8 text-sm font-light tracking-wide">
+                <a href="#home" class="nav-link hover:text-cyan-400 transition-colors duration-300">HOME</a>
+                <a href="#build" class="nav-link hover:text-cyan-400 transition-colors duration-300">BUILD</a>
+                <a href="#about" class="nav-link hover:text-cyan-400 transition-colors duration-300">ABOUT</a>
+                <!-- WORK & TOOLS link to external pages -->
+                <a href="projects.html" class="nav-link hover:text-cyan-400 transition-colors duration-300">WORK</a>
+                <a href="tools.html" class="nav-link hover:text-cyan-400 transition-colors duration-300">TOOLS</a>
+                <a href="#contact" class="nav-link hover:text-cyan-400 transition-colors duration-300">CONTACT</a>
+            </div>
+
+            <!-- Mobile Contact Button -->
+            <a href="#contact" class="nav-link md:hidden px-4 py-2 bg-white/10 border border-white/20 rounded-full text-xs font-bold uppercase hover:bg-cyan-500 hover:border-cyan-500 transition-all">
+                Contact
+            </a>
+
+            <!-- Desktop Contact Button -->
+            <a href="#contact" class="nav-link hidden md:block px-6 py-2 bg-white text-black font-bold rounded-full hover:bg-cyan-400 hover:scale-105 transition-all duration-300">
+                Contact Me
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="relative min-h-screen flex items-center justify-center px-4 pt-20 md:pt-0">
+        <div class="text-center z-10 w-full">
+            <p class="text-cyan-400 tracking-[0.3em] md:tracking-[0.5em] text-sm md:text-xl mb-4 uppercase font-bold hero-elem">I AM</p>
+            
+            <h1 class="text-5xl md:text-9xl font-bold mb-2 text-white hero-elem text-glow leading-tight md:leading-none">
+                JANMA <br class="block md:hidden" /> HASAREL
+            </h1>
+            
+            <h2 class="text-4xl md:text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-6 md:mb-8 hero-elem mt-2">
+                HAZA
+            </h2>
+
+            <p class="max-w-xs md:max-w-lg mx-auto text-gray-300 mb-8 md:mb-10 text-base md:text-xl hero-elem leading-relaxed font-light">
+                Web Site & Graphic Designer based in Sri Lanka. Crafting immersive digital experiences.
+            </p>
+            
+            <div class="hero-elem">
+                <a href="#build" class="nav-link glass-panel px-8 md:px-10 py-3 md:py-4 rounded-full text-white font-bold hover:bg-white/10 hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300 inline-block text-sm md:text-base">
+                    Start Building
+                </a>
+            </div>
+        </div>
+        
+        <!-- Scroll Indicator -->
+        <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <svg class="w-5 h-5 md:w-6 md:h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+        </div>
+    </section>
+
+    <!-- SECTION: BUILD -->
+    <section id="build" class="py-16 md:py-24 px-4 relative z-10">
+        <div class="max-w-5xl mx-auto glass-panel rounded-3xl p-6 md:p-16 text-center border-t-4 border-t-cyan-500 scroll-reveal-up">
+            <h2 class="text-3xl md:text-6xl font-bold mb-4 md:mb-6 text-white leading-tight">Build your Web Site here</h2>
+            
+            <p class="text-base md:text-xl text-gray-300 mb-8 leading-relaxed max-w-3xl mx-auto">
+                Turn your vision into a live digital experience. Whether you need a personal portfolio, a business landing page, or a creative showcase, I design websites that are fast, modern, and visually stunning.
+            </p>
+
+            <ul class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8 md:mb-10 text-xs md:text-sm text-cyan-300 font-mono">
+                <li class="glass-panel px-3 py-2 md:px-4 rounded-lg">Responsive Design</li>
+                <li class="glass-panel px-3 py-2 md:px-4 rounded-lg">Modern UI/UX</li>
+                <li class="glass-panel px-3 py-2 md:px-4 rounded-lg">SEO Friendly</li>
+                <li class="glass-panel px-3 py-2 md:px-4 rounded-lg">Fast Performance</li>
+            </ul>
+
+            <!-- White Button -->
+            <a href="#contact" class="nav-link inline-block bg-white text-black text-sm font-bold uppercase tracking-wider px-6 md:px-8 py-3 rounded-full hover:bg-gray-200 hover:scale-105 transition-all duration-300 shadow-lg shadow-white/20">
+                Contact Me
+            </a>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-16 md:py-24 px-4 relative z-10">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+                
+                <!-- CREATIVE HAZA DEVELOPMENT CARD (NO IMAGE) -->
+                <div class="glass-panel w-full aspect-square flex flex-col items-center justify-center relative overflow-hidden group rounded-3xl scroll-reveal-left hover:border-cyan-500/50 transition-all duration-500">
+                    
+                    <!-- Inner Glow Blob (Sea Blue/Cyan) -->
+                    <div class="absolute w-40 h-40 md:w-64 md:h-64 bg-cyan-500 rounded-full blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-700 animate-pulse"></div>
+
+                    <!-- Text Content -->
+                    <div class="relative z-10 text-center transform group-hover:scale-105 transition-transform duration-500">
+                        <!-- HAZA: Sea Blue, Low Opacity -->
+                        <h1 class="text-7xl md:text-9xl font-bold text-cyan-400/50 tracking-tighter" style="text-shadow: 0 0 40px rgba(34, 211, 238, 0.3);">
+                            HAZA
+                        </h1>
+                        <!-- DEVELOPMENT: White, Spaced Out -->
+                        <p class="text-white text-lg md:text-2xl tracking-[0.4em] md:tracking-[0.5em] uppercase font-light mt-[-10px] md:mt-[-20px] opacity-80 mix-blend-overlay">
+                            Developments
+                        </p>
+                    </div>
+                    
+                    <!-- Decorative Line -->
+                    <div class="absolute bottom-12 w-16 h-1 bg-white/20 rounded-full"></div>
+                </div>
+                
+                <div class="scroll-reveal-right text-center md:text-left">
+                    <h2 class="text-cyan-400 font-bold tracking-widest mb-2 text-sm md:text-base">WHO AM I?</h2>
+                    <h3 class="text-3xl md:text-5xl font-bold mb-6 leading-tight">Bridging the gap between <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Creativity & Code.</span></h3>
+                    <p class="text-gray-300 leading-relaxed text-base md:text-lg mb-6">
+                        I am Janma Hasarel, better known as <b>HAZA</b>. I specialize in building professional websites and creating stunning graphic visuals.
+                    </p>
+                    <p class="text-gray-300 leading-relaxed text-base md:text-lg mb-8">
+                        My goal is to help brands stand out with unique, glass-inspired designs and seamless user interfaces.
+                    </p>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="glass-panel p-4 rounded-xl text-center">
+                            <span class="block text-2xl md:text-3xl font-bold text-white">3+</span>
+                            <span class="text-xs md:text-sm text-gray-400">Years Experience</span>
+                        </div>
+                        <div class="glass-panel p-4 rounded-xl text-center">
+                            <span class="block text-2xl md:text-3xl font-bold text-white">50+</span>
+                            <span class="text-xs md:text-sm text-gray-400">Projects Done</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- UPDATED: Work / Projects Section -->
+    <section id="work" class="py-16 md:py-24 px-4 relative z-10">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16 scroll-reveal-up">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">My Projects</h2>
+                <p class="text-gray-400">Explore my development work across different platforms.</p>
+            </div>
+
+            <!-- Updated Grid for 4 Items -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-6">
+                
+                <!-- Button 1: Website Templates (NEW) -->
+                <a href="projects.html#templates" class="glass-panel relative p-6 md:p-8 rounded-3xl group hover:bg-white/5 transition-all duration-500 hover:-translate-y-2 overflow-hidden scroll-reveal-up">
+                    <!-- Background Glow (Emerald) -->
+                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl group-hover:bg-emerald-500/30 transition-all duration-500"></div>
+                    
+                    <div class="relative z-10 flex flex-col items-center justify-center h-full text-center">
+                        <div class="w-16 h-16 mb-6 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
+                        </div>
+                        <h3 class="text-xl md:text-2xl font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors">Templates</h3>
+                        <p class="text-sm text-gray-400 group-hover:text-gray-300">Web Design Layouts</p>
+                    </div>
+                </a>
+
+                <!-- Button 2: Mobile Apps -->
+                <a href="projects.html#mobile" class="glass-panel relative p-6 md:p-8 rounded-3xl group hover:bg-white/5 transition-all duration-500 hover:-translate-y-2 overflow-hidden scroll-reveal-up" style="transition-delay: 50ms;">
+                    <!-- Background Glow -->
+                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-cyan-500/20 rounded-full blur-3xl group-hover:bg-cyan-500/30 transition-all duration-500"></div>
+                    
+                    <div class="relative z-10 flex flex-col items-center justify-center h-full text-center">
+                        <div class="w-16 h-16 mb-6 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <h3 class="text-xl md:text-2xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">Mobile Apps</h3>
+                        <p class="text-sm text-gray-400 group-hover:text-gray-300">Android & iOS</p>
+                    </div>
+                </a>
+
+                <!-- Button 3: Desktop Apps -->
+                <a href="projects.html#desktop" class="glass-panel relative p-6 md:p-8 rounded-3xl group hover:bg-white/5 transition-all duration-500 hover:-translate-y-2 overflow-hidden scroll-reveal-up" style="transition-delay: 100ms;">
+                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-all duration-500"></div>
+                    
+                    <div class="relative z-10 flex flex-col items-center justify-center h-full text-center">
+                        <div class="w-16 h-16 mb-6 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <h3 class="text-xl md:text-2xl font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">Desktop Apps</h3>
+                        <p class="text-sm text-gray-400 group-hover:text-gray-300">Windows & Mac</p>
+                    </div>
+                </a>
+
+                <!-- Button 4: All Source Files -->
+                <a href="https://github.com/hazasite?tab=repositories" target="_blank" class="glass-panel relative p-6 md:p-8 rounded-3xl group hover:bg-white/5 transition-all duration-500 hover:-translate-y-2 overflow-hidden scroll-reveal-up" style="transition-delay: 150ms;">
+                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-pink-500/20 rounded-full blur-3xl group-hover:bg-pink-500/30 transition-all duration-500"></div>
+                    
+                    <div class="relative z-10 flex flex-col items-center justify-center h-full text-center">
+                        <div class="w-16 h-16 mb-6 rounded-2xl bg-pink-500/10 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                        </div>
+                        <h3 class="text-xl md:text-2xl font-bold text-white mb-2 group-hover:text-pink-400 transition-colors">Source Files</h3>
+                        <p class="text-sm text-gray-400 group-hover:text-gray-300">GitHub Repositories</p>
+                    </div>
+                </a>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Tools Section -->
+    <section id="tools-section" class="py-16 md:py-24 px-4 relative z-10">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-12 scroll-reveal-up">
+                <h2 class="text-3xl md:text-5xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">My Toolkit</h2>
+                <p class="text-gray-300">The software and technologies I use to bring ideas to life.</p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-10">
+                <!-- Tool 1: VS Code -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center hover:bg-white/5 transition-all duration-300 hover:border-cyan-500/50 scroll-reveal-up">
+                    <div class="w-12 h-12 mb-4 text-cyan-400">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/></svg>
+                    </div>
+                    <span class="font-bold text-white text-sm">VS Code</span>
+                </div>
+                <!-- Tool 2: Tailwind -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center hover:bg-white/5 transition-all duration-300 hover:border-cyan-500/50 scroll-reveal-up" style="transition-delay: 50ms;">
+                    <div class="w-12 h-12 mb-4 text-cyan-400">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.001,4.8c-3.2,0-5.2,1.6-6,4.8c1.2-1.6,2.6-2.2,4.2-1.8c0.913,0.228,1.565,0.89,2.288,1.624 C13.666,10.618,15.027,12,18.001,12c3.2,0,5.2-1.6,6-4.8c-1.2,1.6-2.6,2.2-4.2,1.8c-0.913-0.228-1.565-0.89-2.288-1.624 C16.337,6.182,14.976,4.8,12.001,4.8z M6.001,12c-3.2,0-5.2,1.6-6,4.8c1.2-1.6,2.6-2.2,4.2-1.8c0.913,0.228,1.565,0.89,2.288,1.624 c1.177,1.194,2.538,2.576,5.512,2.576c3.2,0,5.2-1.6,6-4.8c-1.2,1.6-2.6,2.2-4.2,1.8c-0.913-0.228-1.565-0.89-2.288-1.624 C10.337,13.382,8.976,12,6.001,12z"/></svg>
+                    </div>
+                    <span class="font-bold text-white text-sm">Tailwind</span>
+                </div>
+                <!-- Tool 3: Figma -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center hover:bg-white/5 transition-all duration-300 hover:border-purple-500/50 scroll-reveal-up" style="transition-delay: 100ms;">
+                    <div class="w-12 h-12 mb-4 text-purple-400">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5,5.5C5,4.119,6.119,3,7.5,3S10,4.119,10,5.5S8.881,8,7.5,8S5,6.881,5,5.5z M5,12c0-1.381,1.119-2.5,2.5-2.5S10,10.619,10,12 s-1.119,2.5-2.5,2.5S5,13.381,5,12z M7.5,18c-1.381,0-2.5-1.119-2.5-2.5S6.119,13,7.5,13S10,14.119,10,15.5S8.881,18,7.5,18z M12,5.5 c0-1.381,1.119-2.5,2.5-2.5S17,4.119,17,5.5S15.881,8,14.5,8S12,6.881,12,5.5z M19,8c1.381,0,2.5,1.119,2.5,2.5S20.381,13,19,13 s-2.5-1.119-2.5-2.5S17.619,8,19,8z M19,18c-1.381,0-2.5-1.119-2.5-2.5s1.119-2.5,2.5-2.5s2.5,1.119,2.5,2.5S20.381,18,19,18z M14.5,10.5c-1.381,0-2.5,1.119-2.5,2.5s1.119,2.5,2.5,2.5s2.5-1.119,2.5-2.5S15.881,10.5,14.5,10.5z M14.5,10.5c-1.381,0-2.5,1.119-2.5,2.5 s1.119,2.5,2.5,2.5s2.5-1.119,2.5-2.5S15.881,10.5,14.5,10.5z"/></svg>
+                    </div>
+                    <span class="font-bold text-white text-sm">Figma</span>
+                </div>
+                <!-- Tool 4: Three.js -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center hover:bg-white/5 transition-all duration-300 hover:border-white/50 scroll-reveal-up" style="transition-delay: 150ms;">
+                    <div class="w-12 h-12 mb-4 text-white">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/></svg>
+                    </div>
+                    <span class="font-bold text-white text-sm">Three.js</span>
+                </div>
+            </div>
+            <div class="flex justify-center scroll-reveal-up">
+                <a href="tools.html" class="group glass-panel px-8 md:px-12 py-3 rounded-full text-white font-bold hover:bg-white/10 hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300 inline-flex items-center space-x-2">
+                    <span>Explorer Tools</span>
+                    <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== HAZA COLLABORATORS SECTION ===== -->
+    <section id="collaborators" class="py-16 md:py-32 px-4 relative z-10 overflow-hidden">
+
+        <!-- Background decorative glows -->
+        <div class="collab-glow-orb w-96 h-96 bg-cyan-500/10 top-10 -left-32"></div>
+        <div class="collab-glow-orb w-80 h-80 bg-purple-600/10 bottom-10 -right-24"></div>
+
+        <div class="max-w-6xl mx-auto">
+
+            <!-- Section Header -->
+            <div class="text-center mb-14 scroll-reveal-up">
+                <p class="text-cyan-400 tracking-[0.35em] text-xs md:text-sm mb-3 uppercase font-bold">Open For Collaboration</p>
+                <h2 class="text-3xl md:text-6xl font-bold text-white leading-tight mb-5">
+                    Build Something<br/>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500">Together.</span>
+                </h2>
+                <p class="text-gray-400 max-w-xl mx-auto text-base md:text-lg leading-relaxed">
+                    I started <span class="text-white font-semibold">HAZA Collaborators</span> — a creative team of builders, designers, and developers working on real projects. Spots are limited.
+                </p>
+            </div>
+
+            <!-- Main Card -->
+            <div class="glass-panel rounded-3xl p-6 md:p-12 scroll-reveal-up border-t-4 border-t-purple-500 relative overflow-hidden">
+
+                <!-- Inner glow blobs -->
+                <div class="absolute top-0 right-0 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute bottom-0 left-0 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-14 items-center">
+
+                    <!-- LEFT: Info -->
+                    <div>
+                        <!-- Team Avatars -->
+                        <div class="flex items-center gap-3 mb-7 flex-wrap">
+                            <div class="flex -space-x-3">
+                                <div class="collab-orb float-anim" style="background: linear-gradient(135deg,#06b6d4,#3b82f6); color:white;">J</div>
+                                <div class="collab-orb float-anim-2" style="background: linear-gradient(135deg,#8b5cf6,#ec4899); color:white; animation-delay:0.5s;">A</div>
+                                <div class="collab-orb float-anim" style="background: linear-gradient(135deg,#10b981,#06b6d4); color:white; animation-delay:1s;">K</div>
+                                <div class="collab-orb float-anim-2" style="background: linear-gradient(135deg,#f59e0b,#ef4444); color:white; animation-delay:1.5s;">R</div>
+                                <div class="collab-orb collab-orb-more float-anim" style="animation-delay:2s;">+</div>
+                            </div>
+                            <div>
+                                <p class="text-white font-bold text-sm">Active Team Members</p>
+                                <p class="text-gray-500 text-xs">More joining every month</p>
+                            </div>
+                        </div>
+
+                        <h3 class="text-2xl md:text-4xl font-bold text-white mb-4 leading-snug">
+                            Join the <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">HAZA</span> Team
+                        </h3>
+                        <p class="text-gray-400 leading-relaxed mb-6 text-sm md:text-base">
+                            We collaborate on websites, apps, design systems, and creative projects. Every member brings a unique skill. Whether you're a developer, designer, content creator, or just passionate — there's a place for you.
+                        </p>
+
+                        <!-- Role Tags -->
+                        <div class="flex flex-wrap gap-2 mb-8">
+                            <span class="role-tag">🎨 UI/UX Design</span>
+                            <span class="role-tag">💻 Web Dev</span>
+                            <span class="role-tag">📱 Mobile Dev</span>
+                            <span class="role-tag">🎬 Content Creation</span>
+                            <span class="role-tag">✍️ Copywriting</span>
+                            <span class="role-tag">🚀 Marketing</span>
+                        </div>
+
+                        <!-- CTA Buttons -->
+                        <div class="flex flex-wrap gap-4">
+                            <a href="https://hazasite.github.io/collaborators" target="_blank" rel="noopener noreferrer" class="collab-btn-primary">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                Join the Team
+                            </a>
+                            <a href="https://forms.gle/YvWPp2L3M3nQ1hmj7" target="_blank" rel="noopener noreferrer" class="collab-btn-secondary">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                Apply Form
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: Stats / Perks -->
+                    <div class="grid grid-cols-2 gap-4">
+
+                        <div class="collab-stat-card col-span-2">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-9 h-9 rounded-xl bg-cyan-500/15 flex items-center justify-center text-cyan-400 flex-shrink-0">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                </div>
+                                <span class="font-bold text-white text-sm">Real Projects, Real Impact</span>
+                            </div>
+                            <p class="text-gray-500 text-xs leading-relaxed">Work on live products that reach real users — not just mock-ups or tutorials.</p>
+                        </div>
+
+                        <div class="collab-stat-card">
+                            <div class="w-9 h-9 rounded-xl bg-purple-500/15 flex items-center justify-center text-purple-400 mb-3 mx-auto">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                            </div>
+                            <p class="text-2xl font-bold text-white">HAZA</p>
+                            <p class="text-gray-500 text-xs mt-1">Collab Team</p>
+                        </div>
+
+                        <div class="collab-stat-card">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center text-emerald-400 mb-3 mx-auto">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+                            </div>
+                            <p class="text-2xl font-bold text-white">Open</p>
+                            <p class="text-gray-500 text-xs mt-1">Spots Available</p>
+                        </div>
+
+                        <div class="collab-stat-card">
+                            <div class="w-9 h-9 rounded-xl bg-pink-500/15 flex items-center justify-center text-pink-400 mb-3 mx-auto">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+                            </div>
+                            <p class="text-2xl font-bold text-white">Remote</p>
+                            <p class="text-gray-500 text-xs mt-1">Work from Anywhere</p>
+                        </div>
+
+                        <div class="collab-stat-card">
+                            <div class="w-9 h-9 rounded-xl bg-yellow-500/15 flex items-center justify-center text-yellow-400 mb-3 mx-auto">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/></svg>
+                            </div>
+                            <p class="text-2xl font-bold text-white">Team</p>
+                            <p class="text-gray-500 text-xs mt-1">Active Community</p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- ===== END HAZA COLLABORATORS SECTION ===== -->
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-16 md:py-24 px-4 relative z-10 mb-10 md:mb-20">
+        <div class="max-w-5xl mx-auto glass-panel rounded-3xl p-8 md:p-16 scroll-reveal-up text-center">
+            
+            <h2 class="text-3xl md:text-5xl font-bold mb-6">Contact Me</h2>
+            <p class="text-gray-300 text-base md:text-lg mb-8 md:mb-12">Interested in working together? Let's connect.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-6 items-center justify-center max-w-4xl mx-auto">
+                <!-- WhatsApp Button -->
+                <a href="https://wa.link/gduzuf" target="_blank" class="group glass-panel p-6 rounded-2xl flex flex-col items-center justify-center hover:bg-green-500/20 hover:border-green-500 transition-all duration-300 cursor-pointer">
+                    <div class="w-14 h-14 md:w-16 md:h-16 bg-green-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <svg class="w-7 h-7 md:w-8 md:h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                    </div>
+                    <span class="text-xl font-bold text-white mb-1">WhatsApp</span>
+                    <span class="text-sm text-green-400">Click to chat</span>
+                </a>
+
+                <!-- GitHub Button -->
+                <a href="https://github.com/hazasite" target="_blank" class="group glass-panel p-6 rounded-2xl flex flex-col items-center justify-center hover:bg-gray-500/20 hover:border-gray-400 transition-all duration-300 cursor-pointer">
+                    <div class="w-14 h-14 md:w-16 md:h-16 bg-white rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <svg class="w-7 h-7 md:w-8 md:h-8 text-black" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    </div>
+                    <span class="text-xl font-bold text-white mb-1">GitHub</span>
+                    <span class="text-sm text-gray-400">@hazasite</span>
+                </a>
+
+                <!-- Phone Number Button -->
+                <div onclick="copyToClipboard()" class="group glass-panel p-6 rounded-2xl flex flex-col items-center justify-center hover:bg-cyan-500/20 hover:border-cyan-500 transition-all duration-300 cursor-pointer relative">
+                    <div class="w-14 h-14 md:w-16 md:h-16 bg-cyan-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <svg class="w-7 h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                    </div>
+                    <span class="text-xl font-bold text-white mb-1">Call Me</span>
+                    <span id="phone-display" class="text-xs md:text-sm text-cyan-400 font-mono tracking-wider">+94771315403</span>
+                    
+                    <!-- Notification -->
+                    <div id="copy-notification" class="absolute -top-4 bg-white text-black text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                        Copied!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 md:py-8 text-gray-600 text-xs md:text-sm relative z-10 glass-panel border-t border-t-white/5 border-b-0 border-x-0">
+        <p>&copy; 2023 HAZA (Janma Hasarel). All Rights Reserved.</p>
+    </footer>
+
+    <!-- Scripts for 3D and Animation -->
+    <script>
+        // --- Copy to Clipboard Function ---
+        function copyToClipboard() {
+            const phoneNumber = "+94771315403";
+            navigator.clipboard.writeText(phoneNumber).then(() => {
+                const notification = document.getElementById('copy-notification');
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 2000);
+            });
+        }
+
+        // --- Three.js Setup (The 3D Scene) ---
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.002);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // A. Particles
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 2000;
+        const posArray = new Float32Array(particlesCount * 3);
+        for(let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 20; 
+        }
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.005, color: 0x00ffff, transparent: true, opacity: 0.8,
+        });
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        // B. Main 3D Shape
+        const geometry = new THREE.TorusKnotGeometry(1.2, 0.4, 150, 20);
+        const material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.15 });
+        const torusKnot = new THREE.Mesh(geometry, material);
+        scene.add(torusKnot);
+        
+        const sphereGeo = new THREE.SphereGeometry(0.8, 32, 32);
+        const sphereMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.1 });
+        const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+        scene.add(sphere);
+
+        camera.position.z = 4;
+
+        // Mouse Interaction
+        let mouseX = 0, mouseY = 0, targetX = 0, targetY = 0;
+        const windowHalfX = window.innerWidth / 2;
+        const windowHalfY = window.innerHeight / 2;
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX - windowHalfX);
+            mouseY = (event.clientY - windowHalfY);
+        });
+
+        // Touch Interaction
+        document.addEventListener('touchmove', (event) => {
+            if (event.touches.length > 0) {
+                mouseX = (event.touches[0].clientX - windowHalfX);
+                mouseY = (event.touches[0].clientY - windowHalfY);
+            }
+        }, { passive: true });
+
+        // Animation Loop
+        const clock = new THREE.Clock();
+        const animate = () => {
+            targetX = mouseX * 0.001;
+            targetY = mouseY * 0.001;
+            const elapsedTime = clock.getElapsedTime();
+
+            torusKnot.rotation.y += 0.005;
+            torusKnot.rotation.x += 0.002;
+            torusKnot.rotation.y += 0.05 * (targetX - torusKnot.rotation.y);
+            torusKnot.rotation.x += 0.05 * (targetY - torusKnot.rotation.x);
+            particlesMesh.rotation.y = elapsedTime * 0.05;
+            particlesMesh.rotation.x = mouseY * 0.0001;
+
+            renderer.render(scene, camera);
+            window.requestAnimationFrame(animate);
+        };
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- SMOOTH SCROLL SETUP (Lenis) ---
+        const lenis = new Lenis({
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            direction: 'vertical',
+            gestureDirection: 'vertical',
+            smooth: true,
+            mouseMultiplier: 1,
+            smoothTouch: false,
+            touchMultiplier: 2,
+        });
+
+        // --- GSAP Animations & Smooth Scroll ---
+        gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+        lenis.on('scroll', ScrollTrigger.update);
+
+        gsap.ticker.add((time) => {
+            lenis.raf(time * 1000);
+        });
+
+        gsap.ticker.lagSmoothing(0);
+
+        // 1. Navigation Smooth Scroll (For Clicks)
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                const targetHref = this.getAttribute('href');
+
+                // Check if it's an internal link (starts with #)
+                if (targetHref && targetHref.startsWith('#')) {
+                    e.preventDefault();
+                    
+                    const targetId = targetHref;
+                    const targetElement = document.querySelector(targetId);
+
+                    if (targetElement) {
+                        // Calculate position to center the element
+                        // Formula: Element Top + (Element Height / 2) - (Window Height / 2)
+                        const rect = targetElement.getBoundingClientRect();
+                        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                        
+                        // Absolute position of the center of the target element
+                        const targetCenterY = scrollTop + rect.top + (rect.height / 2);
+                        
+                        // Scroll to the position where the target center is in the middle of the viewport
+                        const scrollToY = targetCenterY - (window.innerHeight / 2);
+
+                        gsap.to(window, {
+                            duration: 1.5,
+                            scrollTo: { y: scrollToY, autoKill: true },
+                            ease: "power3.inOut"
+                        });
+                    }
+                }
+                // If it's not # (like tools.html or projects.html), let default behavior happen
+            });
+        });
+
+        // 2. Element Entrance Animations
+        // Hero elements: set invisible first, then animate in cleanly
+        gsap.set(".fade-in", { y: -50, opacity: 0 });
+        gsap.set(".hero-elem", { y: 50, opacity: 0 });
+
+        const heroTl = gsap.timeline({ delay: 0.1 });
+        heroTl.to(".fade-in", { y: 0, opacity: 1, duration: 1, ease: "power3.out" })
+              .to(".hero-elem", { y: 0, opacity: 1, duration: 1, stagger: 0.2, ease: "power3.out" }, "-=0.5");
+
+        // Scroll-reveal LEFT
+        gsap.utils.toArray('.scroll-reveal-left').forEach(elem => {
+            gsap.to(elem, {
+                scrollTrigger: { trigger: elem, start: "top 85%" },
+                x: 0, opacity: 1, duration: 1, ease: "power3.out",
+                onStart: function() { gsap.set(elem, { x: -50 }); }
+            });
+        });
+
+        // Scroll-reveal RIGHT
+        gsap.utils.toArray('.scroll-reveal-right').forEach(elem => {
+            gsap.to(elem, {
+                scrollTrigger: { trigger: elem, start: "top 85%" },
+                x: 0, opacity: 1, duration: 1, ease: "power3.out",
+                onStart: function() { gsap.set(elem, { x: 50 }); }
+            });
+        });
+
+        // Scroll-reveal UP — stagger cards in a batch so they come one after another
+        ScrollTrigger.batch('.scroll-reveal-up', {
+            start: "top 90%",
+            onEnter: (batch) => {
+                gsap.to(batch, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.8,
+                    stagger: 0.15,
+                    ease: "power3.out",
+                    overwrite: true
+                });
+            },
+            onLeaveBack: (batch) => {
+                gsap.set(batch, { opacity: 0, y: 50 });
+            }
+        });
+
+        // Pre-position all scroll-reveal-up elements so they start from below
+        gsap.set('.scroll-reveal-up', { y: 50 });
+        gsap.set('.scroll-reveal-left', { x: -50 });
+        gsap.set('.scroll-reveal-right', { x: 50 });
+
+    </script>
+</body>
+</html>
